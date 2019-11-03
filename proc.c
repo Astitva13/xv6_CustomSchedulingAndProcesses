@@ -426,6 +426,7 @@ scheduler(void)
           continue;
         if( highP->pid > p1->pid )
           highP = p1;
+          ls();
       }
       p = highP;
       c->proc = p;
