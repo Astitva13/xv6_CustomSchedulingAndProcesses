@@ -302,6 +302,7 @@ wait(void)
         p->killed = 0;
         p->state = UNUSED;
 
+        //Resetting the values
         p->etime = 0;         //*
         p->ctime = 0;         //*
         p->rtime = 0;         //*
