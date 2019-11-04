@@ -251,6 +251,7 @@ exit(void)
   iput(curproc->cwd);
   end_op();
   curproc->cwd = 0;
+  curproc->etime = ticks;
 
   acquire(&ptable.lock);
 
@@ -299,8 +300,12 @@ wait(void)
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
-        p->ctime = 0;
         p->state = UNUSED;
+
+        p->etime = 0;         //*
+        p->ctime = 0;         //*
+        p->rtime = 0;         //*
+
         release(&ptable.lock);
         return pid;
       }
@@ -431,7 +436,6 @@ scheduler(void)
           continue;
         if( highP->pid > p1->pid )
           highP = p1;
-          ls();
       }
       p = highP;
       c->proc = p;
@@ -669,3 +673,21 @@ cps()
   
   return 23;
 }
+
+/*
+  This method will run every clock tick and update the statistic fields for each proc
+*/
+void updatestatistics() {
+  struct proc *p;
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    switch(p->state) {
+      case RUNNING:
+        p->rtime++;
+        break;
+      default:
+        ;
+    }
+  }
+  release(&ptable.lock);
+  }
