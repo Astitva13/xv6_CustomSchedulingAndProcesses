@@ -89,6 +89,9 @@ found:
   p->state = EMBRYO;
   p->priority = 60;    //default priority
   p->pid = nextpid++;
+  
+  p->ctime = ticks;
+  p->rtime = 0;
 
   release(&ptable.lock);
 
@@ -131,6 +134,7 @@ userinit(void)
     panic("userinit: out of memory?");
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
   p->sz = PGSIZE;
+  p->ctime = ticks;
   memset(p->tf, 0, sizeof(*p->tf));
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
   p->tf->ds = (SEG_UDATA << 3) | DPL_USER;
@@ -295,6 +299,7 @@ wait(void)
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
+        p->ctime = 0;
         p->state = UNUSED;
         release(&ptable.lock);
         return pid;
