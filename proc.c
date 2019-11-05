@@ -488,7 +488,7 @@ scheduler(void)
       {
         if(p1->state != RUNNABLE)
           continue;
-        if( highP->pid > p1->pid )
+        if( highP->ctime > p1->ctime )
           highP = p1;
       }
       p = highP;
