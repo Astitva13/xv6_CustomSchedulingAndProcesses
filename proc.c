@@ -13,8 +13,8 @@ struct
   struct proc proc[NPROC];
 } ptable;
 
-int cxj[5] = { -1, -1, -1, -1, -1 };
-struct proc *qxj[64][5];
+int cxj[5] = {-1, -1, -1, -1, -1};
+struct proc *qxj[5][64];
 struct proc_stat pstat_var;
 
 static struct proc *initproc;
@@ -88,8 +88,8 @@ allocproc(void)
     if (p->state == UNUSED)
       goto found;
 
-  c0++;
-  q0[c0] = p;
+  cxj[0]++;
+  qxj[0][cxj[0]] = p;
   pstat_var.inuse[p->pid] = 1;
   pstat_var.ticks[p->pid][0] = 0;
   pstat_var.ticks[p->pid][1] = 0;
@@ -104,8 +104,8 @@ found:
   p->priority = 60; //default priority
   p->pid = nextpid++;
   pstat_var.inuse[p->pid] = 1;
-  c0++;
-  q0[c0] = p;
+  cxj[0]++;
+  qxj[0][cxj[0]] = p;
   pstat_var.ticks[p->pid][0] = 0;
   pstat_var.ticks[p->pid][1] = 0;
   pstat_var.ticks[p->pid][2] = 0;
@@ -563,19 +563,54 @@ void MLFQ_scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
 
-    for ( int j = 0; j < 4 ; j++ )
+    for (int t = 0; t < 4; t++)
     {
-      int c0 = 
+      if (cxj[i] != -1)
+      {
+        for (i = 0; i <= cxj[t]; i++)
+        {
+          if (qxj[t][i]->state != RUNNABLE)
+            continue;
+          p = qxj[t][i];
+          pstat_var.num_run[p->pid]++;
+          switchuvm(p);
+          p->state = RUNNING;
+          c->proc = p;
+
+          swtch(&(c->scheduler), p->context);
+          switchkvm();
+
+          pstat_var.ticks[p->pid][t] = pstat_var.num_run[p->pid];
+          if (pstat_var.num_run[p->pid] == pow(2,t))
+          {
+            /*copy proc to lower priority queue*/
+            cxj[t+1]++;
+            p->priority = p->priority + 1;
+            qxj[t+1][cxj[t+1]] = p;
+
+            /*delete proc from qxj[t]*/
+            qxj[t][i] = 0;
+            for (j = i; j <= cxj[t] - 1; j++)
+              qxj[t][j] = qxj[t][j + 1];
+            qxj[t][cxj[t]] = 0;
+            pstat_var.num_run[p->pid] = 0;
+            cxj[t]--;
+          }
+
+          p = 0;
+          c->proc = 0;
+        }
+      }
     }
 
-    //If first queue is non empty..
-    if (c0 != -1)
+    if (cxj[4] != -1)
     {
-      for (i = 0; i <= c0; i++)
+      for (i = 0; i <= cxj[4]; i++)
       {
-        if (q0[i]->state != RUNNABLE)
+        if (qxj[4][i]->state != RUNNABLE)
           continue;
-        p = q0[i];
+
+        p = qxj[4][i];
         pstat_var.num_run[p->pid]++;
         switchuvm(p);
         p->state = RUNNING;
@@ -584,121 +619,16 @@ void MLFQ_scheduler(void)
         swtch(&(c->scheduler), p->context);
         switchkvm();
 
-        pstat_var.ticks[p->pid][0] = pstat_var.num_run[p->pid];
-        if (pstat_var.num_run[p->pid] == clkPerPrio[0])
-        {
-          /*copy proc to lower priority queue*/
-          c1++;
-          p->priority = p->priority + 1;
-          q1[c1] = p;
-
-          /*delete proc from q0*/
-          q0[i] = 0;
-          for (j = i; j <= c0 - 1; j++)
-            q0[j] = q0[j + 1];
-          q0[c0] = 0;
-          pstat_var.num_run[p->pid] = 0;
-          c0--;
-        }
-
-        p = 0;
-      }
-    }
-    if (c1 != -1)
-    {
-      for (i = 0; i <= c1; i++)
-      {
-        if (q1[i]->state != RUNNABLE)
-          continue;
-
-        p = q1[i];
-        pstat_var.num_run[p->pid]++;
-        switchuvm(p);
-        p->state = RUNNING;
-        swtch(&(c->scheduler), p->context);
-        switchkvm();
-        pstat_var.ticks[p->pid][1] = pstat_var.num_run[p->pid];
-        ;
-        if (pstat_var.num_run[p->pid] == clkPerPrio[1])
-        {
-
-          /*copy proc to lower priority queue*/
-          c2++;
-          p->priority = p->priority + 1;
-          q2[c2] = p;
-
-          /*delete proc from q0*/
-          q1[i] = 0;
-          for (j = i; j <= c1 - 1; j++)
-            q1[j] = q1[j + 1];
-          q1[c1] = 0;
-          pstat_var.num_run[p->pid] = 0;
-          c1--;
-        }
-        p = 0;
-      }
-    }
-
-    if (c2 != -1)
-    {
-      for (i = 0; i <= c2; i++)
-      {
-        if (q2[i]->state != RUNNABLE)
-          continue;
-
-        p = q2[i];
-        proc = q2[i];
-        proc->clicks++;
-        switchuvm(p);
-        p->state = RUNNING;
-        swtch(&cpu->scheduler, proc->context);
-        switchkvm();
-        pstat_var.ticks[p->pid][2] = pstat_var.num_run[p->pid];
-        ;
-        if (pstat_var.num_run[p->pid] == clkPerPrio[2])
-        {
-          /*copy proc to lower priority queue*/
-          c3++;
-          proc->priority = proc->priority + 1;
-          pstat_var.priority[p->pid] = p->priority;
-          q3[c3] = proc;
-
-          /*delete proc from q0*/
-          q2[i] = NULL;
-          for (j = i; j <= c2 - 1; j++)
-            q2[j] = q2[j + 1];
-          q2[c2] = NULL;
-          proc->clicks = 0;
-          c2--;
-        }
-        proc = 0;
-      }
-    }
-    if (c3 != -1)
-    {
-      for (i = 0; i <= c3; i++)
-      {
-        if (q3[i]->state != RUNNABLE)
-          continue;
-
-        p = q3[i];
-        proc = q3[i];
-        proc->clicks++;
-        switchuvm(p);
-        p->state = RUNNING;
-        swtch(&cpu->scheduler, proc->context);
-        switchkvm();
-        pstat_var.priority[p->pid] = p->priority;
         pstat_var.ticks[p->pid][3] = pstat_var.num_run[p->pid];
-        ;
 
         /*move process to end of its own queue */
-        q3[i] = NULL;
-        for (j = i; j <= c3 - 1; j++)
-          q3[j] = q3[j + 1];
-        q3[c3] = proc;
+        qxj[4][i] = 0;
+        for (j = i; j <= cxj[4] - 1; j++)
+          qxj[4][j] = qxj[4][j + 1];
+        qxj[4][cxj[4]] = p;
 
-        proc = 0;
+        p = 0;
+        c->proc = 0;
       }
     }
 
