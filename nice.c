@@ -18,7 +18,7 @@ main(int argc, char *argv[])
       printf(2, "Invalid priority (0-100)!\n" );
       exit();
   }
-  change_priority ( pid, priority );
+  chprty ( pid, priority );
 
   exit();
 }
