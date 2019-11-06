@@ -506,9 +506,10 @@ priority_scheduler(void)
   }
 }
 
-void
-// scheduler(void)
-fcfs_scheduler(void)
+struct proc *running_p;
+
+// void scheduler(void)
+void fcfs_scheduler(void)
 {
   struct proc *p, *p1;
   struct cpu *c = mycpu();
@@ -524,23 +525,26 @@ fcfs_scheduler(void)
     acquire(&ptable.lock);
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     {
-      if (p->state != RUNNABLE || p->state != RUNNING)
+    
+      if (p->state != RUNNABLE)
         continue;
       highP = p;
       for (p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++)
       {
-        if (p1->state != RUNNABLE || p->state != RUNNING)
+        if (p1->state != RUNNABLE /*|| p->state != RUNNING */)
           continue;
         if (highP->ctime > p1->ctime)
           highP = p1;
       }
       p = highP;
-      if (p->state != RUNNING)
+      if (running_p == 0 || (running_p->state == RUNNING && p->ctime < running_p->ctime) || running_p->state != RUNNING)
       {
+        if (running_p != 0 && running_p->pid != p->pid)
+          cprintf("Running process %d .....\n", running_p->pid);
         c->proc = p;
         switchuvm(p);
         p->state = RUNNING;
-
+        running_p = p;
         swtch(&(c->scheduler), p->context);
         switchkvm();
 
@@ -571,31 +575,31 @@ void scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     int timedur[] = {1, 2, 4, 8, 16};
-    int exceededTimedur = 25;
+    // int exceededTimedur = 25;
 
-    //Removing Starvation
-    for (int t = 1; t < 5; t++)
-    {
-      for (int i = 0; i < NPROC; i++)
-      {
-        if (ticks - pstat_var.runtime[i] >= exceededTimedur)
-        {
-          cxj[t - 1]++;
-          pstat_var.current_queue[p->pid] = t - 1;
-          pstat_var.runtime[p->pid] = ticks;
-          qxj[t - 1][cxj[t - 1]] = p;
+    // //Removing Starvation
+    // for (int t = 1; t < 5; t++)
+    // {
+    //   for (int i = 0; i < NPROC; i++)
+    //   {
+    //     if (ticks - pstat_var.runtime[i] >= exceededTimedur)
+    //     {
+    //       cxj[t - 1]++;
+    //       pstat_var.current_queue[p->pid] = t - 1;
+    //       pstat_var.runtime[p->pid] = ticks;
+    //       qxj[t - 1][cxj[t - 1]] = p;
 
-          /*delete proc from qxj[t]*/
-          qxj[t][i] = 0;
-          for (j = i; j <= cxj[t] - 1; j++)
-            qxj[t][j] = qxj[t][j + 1];
-          qxj[t][cxj[t]] = 0;
-          pstat_var.num_run[p->pid] = 0;
-          cxj[t]--;
-          i--;
-        }
-      }
-    }
+    //       /*delete proc from qxj[t]*/
+    //       qxj[t][i] = 0;
+    //       for (j = i; j <= cxj[t] - 1; j++)
+    //         qxj[t][j] = qxj[t][j + 1];
+    //       qxj[t][cxj[t]] = 0;
+    //       pstat_var.num_run[p->pid] = 0;
+    //       cxj[t]--;
+    //       i--;
+    //     }
+    //   }
+    // }
 
     for (int t = 0; t < 4; t++)
     {
@@ -878,15 +882,15 @@ int cps()
 
   // Loop over process table looking for process with pid.
   acquire(&ptable.lock);
-  cprintf("name \t pid \t state \t\t priority \n");
+  cprintf("name \t pid \t state \t\t priority \t ctime \n");
   for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
   {
     if (p->state == SLEEPING)
-      cprintf("%s \t %d  \t SLEEPING \t %d \n ", p->name, p->pid, p->priority);
+      cprintf("%s \t %d  \t SLEEPING \t %d \t\t %d\n ", p->name, p->pid, p->priority, p->ctime);
     else if (p->state == RUNNING)
-      cprintf("%s \t %d  \t RUNNING \t %d \n ", p->name, p->pid, p->priority);
+      cprintf("%s \t %d  \t RUNNING \t %d \t\t %d\n ", p->name, p->pid, p->priority, p->ctime);
     else if (p->state == RUNNABLE)
-      cprintf("%s \t %d  \t RUNNABLE \t %d \n ", p->name, p->pid, p->priority);
+      cprintf("%s \t %d  \t RUNNABLE \t %d \t\t %d\n ", p->name, p->pid, p->priority, p->ctime);
   }
 
   release(&ptable.lock);
