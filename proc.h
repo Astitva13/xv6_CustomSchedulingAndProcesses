@@ -70,7 +70,7 @@ struct proc_stat
 {
   int inuse[NPROC];           // Checks if its in use or not 
   int pid[NPROC];             // PID of each process
-  float runtime[NPROC];       // Use suitable unit of time
+  uint runtime[NPROC];       //  Use suitable unit of time
   int num_run[NPROC];         // Number of time the process is executed
   int current_queue[NPROC];   // Current assigned queue
   int ticks[NPROC][5];        // Number of ticks each process has received at each of the 5 priority queue

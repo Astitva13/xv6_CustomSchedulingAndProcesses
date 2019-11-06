@@ -96,6 +96,7 @@ allocproc(void)
   pstat_var.ticks[p->pid][2] = 0;
   pstat_var.ticks[p->pid][3] = 0;
   pstat_var.pid[p->pid] = p->pid;
+  pstat_var.current_queue[p->pid] = 0;
   release(&ptable.lock);
   return 0;
 
@@ -111,6 +112,7 @@ found:
   pstat_var.ticks[p->pid][2] = 0;
   pstat_var.ticks[p->pid][3] = 0;
   pstat_var.pid[p->pid] = p->pid;
+  pstat_var.current_queue[p->pid] = 0;
 
   p->ctime = ticks;
   p->rtime = 0;
@@ -576,6 +578,7 @@ void MLFQ_scheduler(void)
           switchuvm(p);
           p->state = RUNNING;
           c->proc = p;
+          pstat_var.runtime[p->pid]=ticks;
 
           swtch(&(c->scheduler), p->context);
           switchkvm();
@@ -585,7 +588,7 @@ void MLFQ_scheduler(void)
           {
             /*copy proc to lower priority queue*/
             cxj[t+1]++;
-            p->priority = p->priority + 1;
+            pstat_var.current_queue[p->pid] = t+1;
             qxj[t+1][cxj[t+1]] = p;
 
             /*delete proc from qxj[t]*/
@@ -615,6 +618,7 @@ void MLFQ_scheduler(void)
         switchuvm(p);
         p->state = RUNNING;
         c->proc = p;
+        pstat_var.runtime[p->pid]=ticks;
 
         swtch(&(c->scheduler), p->context);
         switchkvm();
@@ -884,7 +888,9 @@ int getpinfo(struct proc_stat *pstat)
   {
     pstat->inuse[i] = pstat_var.inuse[i];
     pstat->pid[i] = pstat_var.pid[i];
-    pstat->priority[i] = pstat_var.priority[i];
+    pstat->num_run[i] = pstat_var.num_run[i];
+    pstat->current_queue[i] = pstat_var.current_queue[i];
+    pstat->runtime[i] = pstat_var.runtime[i];
     for (j = 0; j < 4; j++)
     {
       pstat->ticks[i][j] = pstat_var.ticks[i][j];
