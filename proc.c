@@ -521,34 +521,37 @@ fcfs_scheduler(void)
     acquire(&ptable.lock);
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     {
-      if (p->state != RUNNABLE)
+      if (p->state != RUNNABLE || p->state != RUNNING)
         continue;
       highP = p;
       for (p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++)
       {
-        if (p1->state != RUNNABLE)
+        if (p1->state != RUNNABLE || p->state != RUNNING)
           continue;
         if (highP->ctime > p1->ctime)
           highP = p1;
       }
       p = highP;
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+      if (p->state != RUNNING)
+      {
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+      }
     }
     release(&ptable.lock);
   }
 }
 
-// void scheduler(void)
-void MLFQ_scheduler(void)
+void scheduler(void)
+// void MLFQ_scheduler(void)
 {
 
   struct proc *p;
@@ -564,10 +567,11 @@ void MLFQ_scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+    int timedur[] = {1, 2, 4, 8, 16};
 
     for (int t = 0; t < 4; t++)
     {
-      if (cxj[i] != -1)
+      if (cxj[t] != -1)
       {
         for (i = 0; i <= cxj[t]; i++)
         {
@@ -578,18 +582,18 @@ void MLFQ_scheduler(void)
           switchuvm(p);
           p->state = RUNNING;
           c->proc = p;
-          pstat_var.runtime[p->pid]=ticks;
+          pstat_var.runtime[p->pid] = ticks;
 
           swtch(&(c->scheduler), p->context);
           switchkvm();
 
           pstat_var.ticks[p->pid][t] = pstat_var.num_run[p->pid];
-          if (pstat_var.num_run[p->pid] == pow(2,t))
+          if (pstat_var.num_run[p->pid] == timedur[t])
           {
             /*copy proc to lower priority queue*/
-            cxj[t+1]++;
-            pstat_var.current_queue[p->pid] = t+1;
-            qxj[t+1][cxj[t+1]] = p;
+            cxj[t + 1]++;
+            pstat_var.current_queue[p->pid] = t + 1;
+            qxj[t + 1][cxj[t + 1]] = p;
 
             /*delete proc from qxj[t]*/
             qxj[t][i] = 0;
@@ -618,7 +622,7 @@ void MLFQ_scheduler(void)
         switchuvm(p);
         p->state = RUNNING;
         c->proc = p;
-        pstat_var.runtime[p->pid]=ticks;
+        pstat_var.runtime[p->pid] = ticks;
 
         swtch(&(c->scheduler), p->context);
         switchkvm();
