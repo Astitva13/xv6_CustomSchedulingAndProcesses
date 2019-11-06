@@ -97,6 +97,8 @@ allocproc(void)
   pstat_var.ticks[p->pid][3] = 0;
   pstat_var.pid[p->pid] = p->pid;
   pstat_var.current_queue[p->pid] = 0;
+  pstat_var.runtime[p->pid] = ticks;
+
   release(&ptable.lock);
   return 0;
 
@@ -113,6 +115,7 @@ found:
   pstat_var.ticks[p->pid][3] = 0;
   pstat_var.pid[p->pid] = p->pid;
   pstat_var.current_queue[p->pid] = 0;
+  pstat_var.runtime[p->pid] = ticks;
 
   p->ctime = ticks;
   p->rtime = 0;
@@ -568,6 +571,31 @@ void scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     int timedur[] = {1, 2, 4, 8, 16};
+    int exceededTimedur = 25;
+
+    //Removing Starvation
+    for (int t = 1; t < 5; t++)
+    {
+      for (int i = 0; i < NPROC; i++)
+      {
+        if (ticks - pstat_var.runtime[i] >= exceededTimedur)
+        {
+          cxj[t - 1]++;
+          pstat_var.current_queue[p->pid] = t - 1;
+          pstat_var.runtime[p->pid] = ticks;
+          qxj[t - 1][cxj[t - 1]] = p;
+
+          /*delete proc from qxj[t]*/
+          qxj[t][i] = 0;
+          for (j = i; j <= cxj[t] - 1; j++)
+            qxj[t][j] = qxj[t][j + 1];
+          qxj[t][cxj[t]] = 0;
+          pstat_var.num_run[p->pid] = 0;
+          cxj[t]--;
+          i--;
+        }
+      }
+    }
 
     for (int t = 0; t < 4; t++)
     {
@@ -582,7 +610,6 @@ void scheduler(void)
           switchuvm(p);
           p->state = RUNNING;
           c->proc = p;
-          pstat_var.runtime[p->pid] = ticks;
 
           swtch(&(c->scheduler), p->context);
           switchkvm();
@@ -593,6 +620,7 @@ void scheduler(void)
             /*copy proc to lower priority queue*/
             cxj[t + 1]++;
             pstat_var.current_queue[p->pid] = t + 1;
+            pstat_var.runtime[p->pid] = ticks;
             qxj[t + 1][cxj[t + 1]] = p;
 
             /*delete proc from qxj[t]*/
@@ -610,6 +638,7 @@ void scheduler(void)
       }
     }
 
+    //Round robin:
     if (cxj[4] != -1)
     {
       for (i = 0; i <= cxj[4]; i++)
@@ -622,7 +651,6 @@ void scheduler(void)
         switchuvm(p);
         p->state = RUNNING;
         c->proc = p;
-        pstat_var.runtime[p->pid] = ticks;
 
         swtch(&(c->scheduler), p->context);
         switchkvm();
