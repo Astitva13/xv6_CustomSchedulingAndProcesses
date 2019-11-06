@@ -120,3 +120,11 @@ sys_cps ( void )
 {
   return cps ();
 }
+
+int
+sys_getpinfo (void)
+{
+  struct proc_stat* px = 0;
+  getpinfo(px);
+  return 0; 
+}

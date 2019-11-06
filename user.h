@@ -1,5 +1,14 @@
 struct stat;
 struct rtcdate;
+struct proc_stat
+{
+  int inuse[64];           // Checks if its in use or not 
+  int pid[64];             // PID of each process
+  uint runtime[64];       //  Use suitable unit of time
+  int num_run[64];         // Number of time the process is executed
+  int current_queue[64];   // Current assigned queue
+  int ticks[64][5];        // Number of ticks each process has received at each of the 5 priority queue
+};
 
 // system calls
 int fork(void);
@@ -23,6 +32,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int getpinfo(struct proc_stat *pstat);
 int waitx(int* wtime,int* rtime);
 int chprty( int pid, int priority );
 int cps(void);

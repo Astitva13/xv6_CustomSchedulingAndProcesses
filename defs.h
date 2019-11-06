@@ -9,6 +9,15 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct proc_stat
+{
+  int inuse[64];           // Checks if its in use or not 
+  int pid[64];             // PID of each process
+  uint runtime[64];       //  Use suitable unit of time
+  int num_run[64];         // Number of time the process is executed
+  int current_queue[64];   // Current assigned queue
+  int ticks[64][5];        // Number of ticks each process has received at each of the 5 priority queue
+};
 
 // bio.c
 void            binit(void);
@@ -123,6 +132,7 @@ void            wakeup(void*);
 void            yield(void);
 int             cps(void);
 int 			chprty( int pid, int priority );
+int             getpinfo(struct proc_stat*);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
