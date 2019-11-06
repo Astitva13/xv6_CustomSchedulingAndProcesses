@@ -575,31 +575,35 @@ void scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     int timedur[] = {1, 2, 4, 8, 16};
-    // int exceededTimedur = 25;
+    int exceededTimedur = 25;
 
-    // //Removing Starvation
-    // for (int t = 1; t < 5; t++)
-    // {
-    //   for (int i = 0; i < NPROC; i++)
-    //   {
-    //     if (ticks - pstat_var.runtime[i] >= exceededTimedur)
-    //     {
-    //       cxj[t - 1]++;
-    //       pstat_var.current_queue[p->pid] = t - 1;
-    //       pstat_var.runtime[p->pid] = ticks;
-    //       qxj[t - 1][cxj[t - 1]] = p;
+    // Removing Starvation
+    for (int t = 1; t < 5; t++)
+    {
+      struct proc *p;
+      for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+      {
+        if(p->state != RUNNABLE)
+          continue;
+        int i = p->pid;
+        if (ticks - pstat_var.runtime[i] >= exceededTimedur)
+        {
+          cxj[t - 1]++;
+          pstat_var.current_queue[p->pid] = t - 1;
+          pstat_var.runtime[p->pid] = ticks;
+          qxj[t - 1][cxj[t - 1]] = p;
 
-    //       /*delete proc from qxj[t]*/
-    //       qxj[t][i] = 0;
-    //       for (j = i; j <= cxj[t] - 1; j++)
-    //         qxj[t][j] = qxj[t][j + 1];
-    //       qxj[t][cxj[t]] = 0;
-    //       pstat_var.num_run[p->pid] = 0;
-    //       cxj[t]--;
-    //       i--;
-    //     }
-    //   }
-    // }
+          /*delete proc from qxj[t]*/
+          qxj[t][i] = 0;
+          for (j = i; j <= cxj[t] - 1; j++)
+            qxj[t][j] = qxj[t][j + 1];
+          qxj[t][cxj[t]] = 0;
+          pstat_var.num_run[p->pid] = 0;
+          cxj[t]--;
+          i--;
+        }
+      }
+    }
 
     for (int t = 0; t < 4; t++)
     {
@@ -914,12 +918,12 @@ void updatestatistics()
 }
 
 //Print process status **syscall**
-int getpinfo(struct proc_stat *pstat)
+int getpinfo(struct proc_stat* pstat)
 {
   int i, j;
   if (argptr(0, (void *)&pstat, sizeof(*pstat)) < 0)
     return -1;
-
+  
   for (i = 0; i < 64; i++)
   {
     pstat->inuse[i] = pstat_var.inuse[i];

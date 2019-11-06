@@ -32,7 +32,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
-int getpinfo(struct proc_stat *pstat);
+int getpinfo(struct proc_stat* pstat);
 int waitx(int* wtime,int* rtime);
 int chprty( int pid, int priority );
 int cps(void);
