@@ -390,7 +390,6 @@ int waitx(int *wtime, int *rtime)
         p->killed = 0;
         p->state = UNUSED;
 
-
         *wtime = p->etime - p->ctime - p->rtime;
         *rtime = p->rtime;
 
@@ -398,7 +397,6 @@ int waitx(int *wtime, int *rtime)
         p->etime = 0; //*
         p->ctime = 0; //*
         p->rtime = 0; //*
-
 
         release(&ptable.lock);
         return pid;
@@ -527,7 +525,7 @@ void fcfs_scheduler(void)
     acquire(&ptable.lock);
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     {
-    
+
       if (p->state != RUNNABLE)
         continue;
       highP = p;
@@ -559,8 +557,8 @@ void fcfs_scheduler(void)
   }
 }
 
-void scheduler(void)
-// void MLFQ_scheduler(void)
+// void scheduler(void)
+void MLFQ_scheduler(void)
 {
 
   struct proc *p;
@@ -585,7 +583,7 @@ void scheduler(void)
       struct proc *p;
       for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
       {
-        if(p->state != RUNNABLE)
+        if (p->state != RUNNABLE)
           continue;
         int i = p->pid;
         if (ticks - pstat_var.runtime[i] >= exceededTimedur)
@@ -680,6 +678,25 @@ void scheduler(void)
 
     release(&ptable.lock);
   }
+}
+
+void scheduler()
+{
+#ifdef DEFAULT
+  default_scheduler();
+#else
+#ifdef PBS
+    priority_scheduler();
+#else
+#ifdef FCFS
+    fcfs_scheduler();
+#else
+#ifdef MLFQ
+    MLFQ_scheduler();
+#endif
+#endif
+#endif
+#endif
 }
 
 // Enter scheduler.  Must hold only ptable.lock
