@@ -13,7 +13,7 @@ make clean
 ```
 
 To exit from non-graphical qemu (qemu-nox):
-> Ctrl+A x
+> `Ctrl+A` x
 
 ### User syscalls:
 
