@@ -540,7 +540,7 @@ void MLFQ_scheduler(struct cpu *c)
   acquire(&ptable.lock);
   int ticksTodur = 30; //**change**
   int timedur[] = {1, 2, 4, 8, 16};
-  for (int i = 0; i < 4; i++) //**change**
+  for (int i = 0; i < 5; i++) //**change**
   {
     timedur[i] *= ticksTodur;
   }
