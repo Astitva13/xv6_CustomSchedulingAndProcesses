@@ -5,7 +5,7 @@ int main(int argc, char *argv[])
 {
     if (argc != 2)
     {
-        printf(1, "Usage: sanity <n>\n");
+        printf(1, "Usage: benchmark <n>\n");
         exit();
     }
     int i;
