@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
             switch (j)
             {
             case 0: //CPU‐bound process (CPU):
-                for (double z = 0; z < 8000000.0; z += 0.01)
+                for (double z = 0; z < 800.0; z += 0.01)
                     x = x + 3.14 * 89.64; // useless calculations to consume CPU time
                 break;
             case 1: //short tasks based CPU‐bound process (S‐CPU):
