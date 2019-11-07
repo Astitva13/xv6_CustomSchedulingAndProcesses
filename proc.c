@@ -390,13 +390,15 @@ int waitx(int *wtime, int *rtime)
         p->killed = 0;
         p->state = UNUSED;
 
+
+        *wtime = p->etime - p->ctime - p->rtime;
+        *rtime = p->rtime;
+
         //Resetting the values
         p->etime = 0; //*
         p->ctime = 0; //*
         p->rtime = 0; //*
 
-        *wtime = p->etime - p->ctime - p->rtime;
-        *rtime = p->rtime;
 
         release(&ptable.lock);
         return pid;
