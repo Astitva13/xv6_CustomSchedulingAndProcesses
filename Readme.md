@@ -53,3 +53,17 @@ PBS     : For Priority based
 MLFQ    : For MLFQ scheduling
 ```
 
+### Implementations:
+
+#### FCFS:
+During the development of waitx, three more attributes namely `ctime`, `rtime` and `etime` denoting creation time, run time, end time were created.
+So for FCFS we look for process with smallest `ctime`.
+
+Also this scheduling implemented here is non-preemptive. To implement this, we compare the `ctime` of currently running process, and that of smallest `ctime` and preemp only when the second is smaller than first.
+
+### PBS:
+Similar to FCFS but here comparing `priority` attribute of the process (Added to implement this). Default priority is set to `60`, lower the value of this attribute higher is the Process priority. Max value is set to 100.
+To change the priority of a process use `xpri` user syscall.
+
+### MLFQ:
+The approach is simple 
