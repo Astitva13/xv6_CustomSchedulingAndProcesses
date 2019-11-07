@@ -90,6 +90,19 @@ sys_sleep(void)
   return 0;
 }
 
+int
+sys_chprty(void)
+{
+  int pid, pr;
+  if(argint(0, &pid) < 0)
+    return -1;
+  if(argint(1, &pr) < 0)
+    return -1;
+
+  return chprty ( pid, pr );
+}
+
+
 // return how many clock tick interrupts have occurred
 // since start.
 int
@@ -103,17 +116,6 @@ sys_uptime(void)
   return xticks;
 }
 
-int
-sys_chprty(void)
-{
-  int pid, pr;
-  if(argint(0, &pid) < 0)
-    return -1;
-  if(argint(1, &pr) < 0)
-    return -1;
-
-  return chprty ( pid, pr );
-}
 
 int
 sys_cps ( void )

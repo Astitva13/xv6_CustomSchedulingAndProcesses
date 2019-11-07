@@ -13,6 +13,7 @@ struct cpu
 
 extern struct cpu cpus[NCPU];
 extern int ncpu;
+void updatestatistics();
 
 //PAGEBREAK: 17
 // Saved registers for kernel context switches.
@@ -73,5 +74,3 @@ struct proc
 //   original data and bss
 //   fixed-size stack
 //   expandable heap
-
-void updatestatistics();

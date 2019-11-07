@@ -85,12 +85,14 @@ argstr(int n, char **pp)
 extern int sys_chdir(void);
 extern int sys_close(void);
 extern int sys_dup(void);
+extern int sys_getpinfo(void);
 extern int sys_exec(void);
 extern int sys_exit(void);
 extern int sys_fork(void);
 extern int sys_fstat(void);
 extern int sys_getpid(void);
 extern int sys_kill(void);
+extern int sys_chprty(void);
 extern int sys_link(void);
 extern int sys_mkdir(void);
 extern int sys_mknod(void);
@@ -104,13 +106,12 @@ extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_waitx(void);
 extern int sys_uptime(void);
-extern int sys_chprty(void);
 extern int sys_cps(void);
-extern int sys_getpinfo(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]     sys_fork,
 [SYS_exit]     sys_exit,
+[SYS_chprty]   sys_chprty,
 [SYS_waitx]    sys_waitx,
 [SYS_wait]     sys_wait,
 [SYS_pipe]     sys_pipe,
@@ -123,6 +124,7 @@ static int (*syscalls[])(void) = {
 [SYS_getpid]   sys_getpid,
 [SYS_sbrk]     sys_sbrk,
 [SYS_sleep]    sys_sleep,
+[SYS_getpinfo] sys_getpinfo,
 [SYS_uptime]   sys_uptime,
 [SYS_open]     sys_open,
 [SYS_write]    sys_write,
@@ -131,9 +133,7 @@ static int (*syscalls[])(void) = {
 [SYS_link]     sys_link,
 [SYS_mkdir]    sys_mkdir,
 [SYS_close]    sys_close,
-[SYS_chprty]   sys_chprty,
 [SYS_cps]      sys_cps,
-[SYS_getpinfo] sys_getpinfo,
 };
 
 void

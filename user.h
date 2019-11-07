@@ -17,13 +17,16 @@ int wait(void);
 int pipe(int*);
 int write(int, const void*, int);
 int read(int, void*, int);
+int chprty( int pid, int priority );
 int close(int);
 int kill(int);
 int exec(char*, char**);
+int getpinfo(struct proc_stat* pstat);
 int open(const char*, int);
 int mknod(const char*, short, short);
 int unlink(const char*);
 int fstat(int fd, struct stat*);
+int cps(void);
 int link(const char*, const char*);
 int mkdir(const char*);
 int chdir(const char*);
@@ -32,10 +35,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
-int getpinfo(struct proc_stat* pstat);
 int waitx(int* wtime,int* rtime);
-int chprty( int pid, int priority );
-int cps(void);
 
 // ulib.c
 int stat(const char*, struct stat*);

@@ -115,6 +115,7 @@ int             pipewrite(struct pipe*, char*, int);
 int             cpuid(void);
 void            exit(void);
 int             fork(void);
+int             getpinfo(struct proc_stat*);
 int             growproc(int);
 int             kill(int);
 struct cpu*     mycpu(void);
@@ -122,17 +123,16 @@ struct proc*    myproc();
 void            pinit(void);
 void            procdump(void);
 void            scheduler(void) __attribute__((noreturn));
+int 			      chprty( int pid, int priority );
 void            sched(void);
 void            setproc(struct proc*);
 void            sleep(void*, struct spinlock*);
+int             cps(void);
 void            userinit(void);
 int             waitx(int*, int*);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
-int             cps(void);
-int 			chprty( int pid, int priority );
-int             getpinfo(struct proc_stat*);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
