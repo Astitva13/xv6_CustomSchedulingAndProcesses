@@ -13,7 +13,9 @@ make clean
 ```
 
 To exit from non-graphical qemu (qemu-nox):
-> `Ctrl+A` x
+```
+Ctrl+A x
+```
 
 ### User syscalls:
 
@@ -39,4 +41,15 @@ Its just extension of predefined `wait syscall` but with two more arguments for 
 
 Default scheduler for xv6 is `ROUND ROBIN`, and to use this scheduler no new CLARG is to be passed.
 
-For other schedulers following format should be used
+For other schedulers following format should be used:
+```
+make qemu-nox SCHEDULER=VALUE
+```
+Where `VALUE` is:
+```
+DEFAULT : For Round Robin
+FCFS    : For FCFS
+PBS     : For Priority based
+MLFQ    : For MLFQ scheduling
+```
+
