@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     n = 2;
   x = 0;
   id = 0;
-  for (k = 0; k <= n - 1; k)
+  for (k = 0; k <= n - 1;)
   {
     id = fork();
     if (id < 0)
