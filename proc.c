@@ -426,235 +426,159 @@ int waitx(int *wtime, int *rtime)
 
 void
 // scheduler(void)
-default_scheduler(void)
+default_scheduler(struct cpu *c)
 {
   struct proc *p;
-  struct cpu *c = mycpu();
-  c->proc = 0;
 
-  for (;;)
+  // Loop over process table looking for process to run.
+  acquire(&ptable.lock);
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
   {
-    // Enable interrupts on this processor.
-    sti();
+    if (p->state != RUNNABLE)
+      continue;
 
-    // Loop over process table looking for process to run.
-    acquire(&ptable.lock);
-    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    {
-      if (p->state != RUNNABLE)
-        continue;
+    // Switch to chosen process.  It is the process's job
+    // to release ptable.lock and then reacquire it
+    // before jumping back to us.
+    c->proc = p;
+    switchuvm(p);
+    p->state = RUNNING;
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+    swtch(&(c->scheduler), p->context);
+    switchkvm();
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
-    }
-    release(&ptable.lock);
+    // Process is done running for now.
+    // It should have changed its p->state before coming back.
+    c->proc = 0;
   }
+  release(&ptable.lock);
 }
 
 void
 // scheduler(void)
-priority_scheduler(void)
+priority_scheduler(struct cpu *c)
 {
-  struct proc *p, *p1;
-  struct cpu *c = mycpu();
-  c->proc = 0;
-
-  for (;;)
+  struct proc *p;
+  // Loop over process table looking for process to run.
+  struct proc *highP, *p1;
+  acquire(&ptable.lock);
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
   {
-    // Enable interrupts on this processor.
-    sti();
-
-    // Loop over process table looking for process to run.
-    struct proc *highP;
-    acquire(&ptable.lock);
-    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    if (p->state != RUNNABLE)
+      continue;
+    highP = p;
+    for (p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++)
     {
-      if (p->state != RUNNABLE)
+      if (p1->state != RUNNABLE)
         continue;
-      highP = p;
-      for (p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++)
-      {
-        if (p1->state != RUNNABLE)
-          continue;
-        if (highP->priority > p1->priority)
-          highP = p1;
-      }
-      p = highP;
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+      if (highP->priority > p1->priority)
+        highP = p1;
     }
-    release(&ptable.lock);
+    p = highP;
+    c->proc = p;
+    switchuvm(p);
+    p->state = RUNNING;
+
+    swtch(&(c->scheduler), p->context);
+    switchkvm();
+
+    // Process is done running for now.
+    // It should have changed its p->state before coming back.
+    c->proc = 0;
   }
+  release(&ptable.lock);
 }
 
 struct proc *running_p;
 
 // void scheduler(void)
-void fcfs_scheduler(void)
+void fcfs_scheduler(struct cpu *c)
 {
-  struct proc *p, *p1;
-  struct cpu *c = mycpu();
-  c->proc = 0;
+  struct proc *p;
 
-  for (;;)
+  // Loop over process table looking for process to run.
+  struct proc *highP, *p1;
+  acquire(&ptable.lock);
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
   {
-    // Enable interrupts on this processor.
-    sti();
 
-    // Loop over process table looking for process to run.
-    struct proc *highP;
-    acquire(&ptable.lock);
-    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    if (p->state != RUNNABLE)
+      continue;
+    highP = p;
+    for (p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++)
     {
-
-      if (p->state != RUNNABLE)
+      if (p1->state != RUNNABLE /*|| p->state != RUNNING */)
         continue;
-      highP = p;
-      for (p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++)
-      {
-        if (p1->state != RUNNABLE /*|| p->state != RUNNING */)
-          continue;
-        if (highP->ctime > p1->ctime)
-          highP = p1;
-      }
-      p = highP;
-      if (running_p == 0 || (running_p->state == RUNNING && p->ctime < running_p->ctime) || running_p->state != RUNNING)
-      {
-        if (running_p != 0 && running_p->pid != p->pid)
-          cprintf("Running process %d .....\n", running_p->pid);
-        c->proc = p;
-        switchuvm(p);
-        p->state = RUNNING;
-        running_p = p;
-        swtch(&(c->scheduler), p->context);
-        switchkvm();
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-      }
+      if (highP->ctime > p1->ctime)
+        highP = p1;
     }
-    release(&ptable.lock);
+    p = highP;
+    if (running_p == 0 || (running_p->state == RUNNING && p->ctime < running_p->ctime) || running_p->state != RUNNING)
+    {
+      if (running_p != 0 && running_p->pid != p->pid)
+        cprintf("Running process %d .....\n", running_p->pid);
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+      running_p = p;
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+    }
   }
+  release(&ptable.lock);
 }
 
 // void scheduler(void)
-void MLFQ_scheduler(void)
+void MLFQ_scheduler(struct cpu *c)
 {
-
   struct proc *p;
-  int i;
-  int j;
-  struct cpu *c = mycpu();
-  c->proc = 0;
+  // Loop over process table looking for process to run.
+  acquire(&ptable.lock);
+  int timedur[] = {1, 2, 4, 8, 16};
+  int exceededTimedur = 25;
+  int i,j;
 
-  for (;;)
+  // Removing Starvation
+  for (int t = 1; t < 5; t++)
   {
-    // Enable interrupts on this processor.
-    sti();
-
-    // Loop over process table looking for process to run.
-    acquire(&ptable.lock);
-    int timedur[] = {1, 2, 4, 8, 16};
-    int exceededTimedur = 25;
-
-    // Removing Starvation
-    for (int t = 1; t < 5; t++)
+    struct proc *p;
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     {
-      struct proc *p;
-      for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+      if (p->state != RUNNABLE)
+        continue;
+      int i = p->pid;
+      if (ticks - pstat_var.runtime[i] >= exceededTimedur)
       {
-        if (p->state != RUNNABLE)
-          continue;
-        int i = p->pid;
-        if (ticks - pstat_var.runtime[i] >= exceededTimedur)
-        {
-          cxj[t - 1]++;
-          pstat_var.current_queue[p->pid] = t - 1;
-          pstat_var.runtime[p->pid] = ticks;
-          qxj[t - 1][cxj[t - 1]] = p;
+        cxj[t - 1]++;
+        pstat_var.current_queue[p->pid] = t - 1;
+        pstat_var.runtime[p->pid] = ticks;
+        qxj[t - 1][cxj[t - 1]] = p;
 
-          /*delete proc from qxj[t]*/
-          qxj[t][i] = 0;
-          for (j = i; j <= cxj[t] - 1; j++)
-            qxj[t][j] = qxj[t][j + 1];
-          qxj[t][cxj[t]] = 0;
-          pstat_var.num_run[p->pid] = 0;
-          cxj[t]--;
-          i--;
-        }
+        /*delete proc from qxj[t]*/
+        qxj[t][i] = 0;
+        for (j = i; j <= cxj[t] - 1; j++)
+          qxj[t][j] = qxj[t][j + 1];
+        qxj[t][cxj[t]] = 0;
+        pstat_var.num_run[p->pid] = 0;
+        cxj[t]--;
+        i--;
       }
     }
+  }
 
-    for (int t = 0; t < 4; t++)
+  for (int t = 0; t < 4; t++)
+  {
+    if (cxj[t] != -1)
     {
-      if (cxj[t] != -1)
+      for (i = 0; i <= cxj[t]; i++)
       {
-        for (i = 0; i <= cxj[t]; i++)
-        {
-          if (qxj[t][i]->state != RUNNABLE)
-            continue;
-          p = qxj[t][i];
-          pstat_var.num_run[p->pid]++;
-          switchuvm(p);
-          p->state = RUNNING;
-          c->proc = p;
-
-          swtch(&(c->scheduler), p->context);
-          switchkvm();
-
-          pstat_var.ticks[p->pid][t] = pstat_var.num_run[p->pid];
-          if (pstat_var.num_run[p->pid] == timedur[t])
-          {
-            /*copy proc to lower priority queue*/
-            cxj[t + 1]++;
-            pstat_var.current_queue[p->pid] = t + 1;
-            pstat_var.runtime[p->pid] = ticks;
-            qxj[t + 1][cxj[t + 1]] = p;
-
-            /*delete proc from qxj[t]*/
-            qxj[t][i] = 0;
-            for (j = i; j <= cxj[t] - 1; j++)
-              qxj[t][j] = qxj[t][j + 1];
-            qxj[t][cxj[t]] = 0;
-            pstat_var.num_run[p->pid] = 0;
-            cxj[t]--;
-          }
-
-          p = 0;
-          c->proc = 0;
-        }
-      }
-    }
-
-    //Round robin:
-    if (cxj[4] != -1)
-    {
-      for (i = 0; i <= cxj[4]; i++)
-      {
-        if (qxj[4][i]->state != RUNNABLE)
+        if (qxj[t][i]->state != RUNNABLE)
           continue;
-
-        p = qxj[4][i];
+        p = qxj[t][i];
         pstat_var.num_run[p->pid]++;
         switchuvm(p);
         p->state = RUNNING;
@@ -663,40 +587,87 @@ void MLFQ_scheduler(void)
         swtch(&(c->scheduler), p->context);
         switchkvm();
 
-        pstat_var.ticks[p->pid][3] = pstat_var.num_run[p->pid];
+        pstat_var.ticks[p->pid][t] = pstat_var.num_run[p->pid];
+        if (pstat_var.num_run[p->pid] == timedur[t])
+        {
+          /*copy proc to lower priority queue*/
+          cxj[t + 1]++;
+          pstat_var.current_queue[p->pid] = t + 1;
+          pstat_var.runtime[p->pid] = ticks;
+          qxj[t + 1][cxj[t + 1]] = p;
 
-        /*move process to end of its own queue */
-        qxj[4][i] = 0;
-        for (j = i; j <= cxj[4] - 1; j++)
-          qxj[4][j] = qxj[4][j + 1];
-        qxj[4][cxj[4]] = p;
+          /*delete proc from qxj[t]*/
+          qxj[t][i] = 0;
+          for (j = i; j <= cxj[t] - 1; j++)
+            qxj[t][j] = qxj[t][j + 1];
+          qxj[t][cxj[t]] = 0;
+          pstat_var.num_run[p->pid] = 0;
+          cxj[t]--;
+        }
 
         p = 0;
         c->proc = 0;
       }
     }
-
-    release(&ptable.lock);
   }
+
+  //Round robin:
+  if (cxj[4] != -1)
+  {
+    for (i = 0; i <= cxj[4]; i++)
+    {
+      if (qxj[4][i]->state != RUNNABLE)
+        continue;
+
+      p = qxj[4][i];
+      pstat_var.num_run[p->pid]++;
+      switchuvm(p);
+      p->state = RUNNING;
+      c->proc = p;
+
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
+
+      pstat_var.ticks[p->pid][3] = pstat_var.num_run[p->pid];
+
+      /*move process to end of its own queue */
+      qxj[4][i] = 0;
+      for (j = i; j <= cxj[4] - 1; j++)
+        qxj[4][j] = qxj[4][j + 1];
+      qxj[4][cxj[4]] = p;
+
+      p = 0;
+      c->proc = 0;
+    }
+  }
+
+  release(&ptable.lock);
 }
 
 void scheduler()
 {
+  struct cpu *c = mycpu();
+  c->proc = 0;
+  for (;;)
+  {
+    // Enable interrupts on this processor.
+    sti();
 #ifdef DEFAULT
-  default_scheduler();
+    default_scheduler(c);
 #else
 #ifdef PBS
-    priority_scheduler();
+    priority_scheduler(c);
 #else
 #ifdef FCFS
-    fcfs_scheduler();
+    fcfs_scheduler(c);
 #else
 #ifdef MLFQ
-    MLFQ_scheduler();
+    MLFQ_scheduler(c);
 #endif
 #endif
 #endif
 #endif
+  }
 }
 
 // Enter scheduler.  Must hold only ptable.lock
@@ -937,12 +908,12 @@ void updatestatistics()
 }
 
 //Print process status **syscall**
-int getpinfo(struct proc_stat* pstat)
+int getpinfo(struct proc_stat *pstat)
 {
   int i, j;
   if (argptr(0, (void *)&pstat, sizeof(*pstat)) < 0)
     return -1;
-  
+
   for (i = 0; i < 64; i++)
   {
     pstat->inuse[i] = pstat_var.inuse[i];
