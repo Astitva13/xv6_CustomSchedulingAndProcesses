@@ -79,8 +79,5 @@ inserted at the tail of the same queue, from which it is relinquished earlier.
 6. A round-robin scheduler should be used for processes at the lowest priority
 queue.
 7. To prevent starvation, implemented the aging :-
--a. If the wait time of a process in lower priority queues exceeds a given
-limit(assign a suitable limit to prevent starvation), their priority is
-increased and they are pushed to the next higher priority queue.
--b. The wait time is defined as the difference between the current time and
-the time at which the process was last executed.
+   -a. If the wait time of a process in lower priority queues exceeds a given limit(assign a suitable limit to prevent starvation), their priority is increased and they are pushed to the next higher priority queue.
+   -b. The wait time is defined as the difference between the current time and the time at which the process was last executed.
