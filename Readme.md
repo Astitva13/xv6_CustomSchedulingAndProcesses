@@ -66,6 +66,8 @@ Similar to FCFS but here comparing `priority` attribute of the process (Added to
 To change the priority of a process use `xpri` user syscall.
 
 ### MLFQ:
+The procedure is as follows:
+
 1. On the initiation of a process, push it to the end of the highest priority queue.
 2. The highest priority queue should be run always, if not empty.
 3. If the process completes, it leaves the system.
@@ -73,12 +75,10 @@ To change the priority of a process use `xpri` user syscall.
 queue, it is pre-empted and ​ inserted at the end of the next lower level queue.
 5. If a process voluntarily relinquishes control of the CPU, it leaves the queuing
 network, and when the process becomes ready again after the I/O, it is
-inserted at the tail of the same queue, from which it is relinquished earlier
-(Explain in the report how could this be exploited by a process ?).
+inserted at the tail of the same queue, from which it is relinquished earlier.
 6. A round-robin scheduler should be used for processes at the lowest priority
 queue.
-7. To prevent starvation, implement the aging phenomenon using the structure
-defined in Task - 1 :-
+7. To prevent starvation, implemented the aging :-
 a. If the wait time of a process in lower priority queues exceeds a given
 limit(assign a suitable limit to prevent starvation), their priority is
 increased and they are pushed to the next higher priority queue.
