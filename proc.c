@@ -515,7 +515,7 @@ void fcfs_scheduler(struct cpu *c)
     p = highP;
     if (running_p == 0 || (running_p->state == RUNNING && p->ctime < running_p->ctime) || running_p->state != RUNNING)
     {
-      if (p->pid >2 && running_p != 0 && running_p->pid != p->pid && running_p->pid>2)
+      if (p->pid > 2 && running_p != 0 && running_p->pid != p->pid && running_p->pid > 2)
         cprintf("Running process %d .....\n", running_p->pid);
       c->proc = p;
       switchuvm(p);
@@ -538,9 +538,15 @@ void MLFQ_scheduler(struct cpu *c)
   struct proc *p;
   // Loop over process table looking for process to run.
   acquire(&ptable.lock);
+  int ticksTodur = 30; //**change**
   int timedur[] = {1, 2, 4, 8, 16};
-  int exceededTimedur = 25;
-  int i,j;
+  for (int i = 0; i < 4; i++) //**change**
+  {
+    timedur[i] *= ticksTodur;
+  }
+
+  int exceededTimedur = 25 * ticksTodur; //**change**
+  int i, j;
 
   // Removing Starvation
   for (int t = 1; t < 5; t++)
@@ -551,6 +557,9 @@ void MLFQ_scheduler(struct cpu *c)
       if (p->state != RUNNABLE)
         continue;
       int i = p->pid;
+      if (pstat_var.current_queue[i] != t) //**change**
+        continue;
+
       if (ticks - pstat_var.runtime[i] >= exceededTimedur)
       {
         cxj[t - 1]++;
@@ -570,9 +579,10 @@ void MLFQ_scheduler(struct cpu *c)
     }
   }
 
+  //For the first 4 queues:
   for (int t = 0; t < 4; t++)
   {
-    if (cxj[t] != -1)
+    if (cxj[t] != -1) //cxj[t] is number of process curr in queue
     {
       for (i = 0; i <= cxj[t]; i++)
       {
@@ -611,7 +621,7 @@ void MLFQ_scheduler(struct cpu *c)
     }
   }
 
-  //Round robin:
+  //Round robin for last queue:
   if (cxj[4] != -1)
   {
     for (i = 0; i <= cxj[4]; i++)
@@ -644,7 +654,7 @@ void MLFQ_scheduler(struct cpu *c)
   release(&ptable.lock);
 }
 
-int clj=0;
+int clj = 0;
 void scheduler()
 {
   struct cpu *c = mycpu();
@@ -654,19 +664,35 @@ void scheduler()
     // Enable interrupts on this processor.
     sti();
 #ifdef DEFAULT
-    if(clj==0){cprintf("SCHEDULER: Default\n");clj++;}
+    if (clj == 0)
+    {
+      cprintf("SCHEDULER: Default\n");
+      clj++;
+    }
     default_scheduler(c);
 #else
 #ifdef PBS
-    if(clj==0){cprintf("SCHEDULER: Priority Based\n");clj++;}
+    if (clj == 0)
+    {
+      cprintf("SCHEDULER: Priority Based\n");
+      clj++;
+    }
     priority_scheduler(c);
 #else
 #ifdef FCFS
-    if(clj==0){cprintf("SCHEDULER: FCFS\n");clj++;}
+    if (clj == 0)
+    {
+      cprintf("SCHEDULER: FCFS\n");
+      clj++;
+    }
     fcfs_scheduler(c);
 #else
 #ifdef MLFQ
-    if(clj==0){cprintf("SCHEDULER: MLFQ\n");clj++;}
+    if (clj == 0)
+    {
+      cprintf("SCHEDULER: MLFQ\n");
+      clj++;
+    }
     MLFQ_scheduler(c);
 #endif
 #endif
