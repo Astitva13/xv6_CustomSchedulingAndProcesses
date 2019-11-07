@@ -515,7 +515,7 @@ void fcfs_scheduler(struct cpu *c)
     p = highP;
     if (running_p == 0 || (running_p->state == RUNNING && p->ctime < running_p->ctime) || running_p->state != RUNNING)
     {
-      if (running_p != 0 && running_p->pid != p->pid)
+      if (p->pid >2 && running_p != 0 && running_p->pid != p->pid && running_p->pid>2)
         cprintf("Running process %d .....\n", running_p->pid);
       c->proc = p;
       switchuvm(p);
@@ -644,6 +644,7 @@ void MLFQ_scheduler(struct cpu *c)
   release(&ptable.lock);
 }
 
+int clj=0;
 void scheduler()
 {
   struct cpu *c = mycpu();
@@ -653,15 +654,19 @@ void scheduler()
     // Enable interrupts on this processor.
     sti();
 #ifdef DEFAULT
+    if(clj==0){cprintf("SCHEDULER: Default\n");clj++;}
     default_scheduler(c);
 #else
 #ifdef PBS
+    if(clj==0){cprintf("SCHEDULER: Priority Based\n");clj++;}
     priority_scheduler(c);
 #else
 #ifdef FCFS
+    if(clj==0){cprintf("SCHEDULER: FCFS\n");clj++;}
     fcfs_scheduler(c);
 #else
 #ifdef MLFQ
+    if(clj==0){cprintf("SCHEDULER: MLFQ\n");clj++;}
     MLFQ_scheduler(c);
 #endif
 #endif
